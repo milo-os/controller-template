@@ -1,43 +1,67 @@
 # controller-template
 
-A template repository for building Kubernetes controllers that connect to the Milo control plane. Fork this to bootstrap a new kubebuilder v4 controller service.
+A production-ready starting point for building Kubernetes controller services on the Milo platform. Fork this once and you get a working kubebuilder v4 controller, example CRD with reconciler/finalizer/conditions, defaulting and validating webhooks, a full Kustomize deployment tree, a Remix UI, Taskfile-based dev workflow, GitHub Actions CI, and a Claude Code integration that guides you through naming and initialization before you write a single line of code.
 
-## What This Is
+This template exists because building all of that from scratch — correctly — takes days. Forking this takes minutes.
 
-This template provides the standard project layout, build tooling, and deployment configuration used by Milo controller services. It includes a working example `Resource` CRD with a reconciler, webhook scaffolding, and a full kustomize deployment tree.
+---
 
-When you fork this template, you replace the `example.miloapis.com` API group, `Resource` kind, and `controller-template` name with your service's specifics.
+## Using with Claude Code
 
-## How It Connects to the Milo Control Plane
+This template is designed for AI-assisted development. Claude Code has first-class support baked in: a session hook, a `/init-service` command, and a `CLAUDE.md` that gives Claude full context about the codebase conventions.
 
-The operator config supports a `kubeconfigPath` field that points the controller at Milo's API server:
+### First open: automatic product discovery
 
-```yaml
-apiVersion: apiserver.config.miloapis.com/v1alpha1
-kind: ControllerTemplateOperator
-metricsServer:
-  bindAddress: "0"
-kubeconfigPath: /etc/milo/kubeconfig
+When you open this repo in Claude Code for the first time (before initialization), a session hook fires automatically. Claude starts a product discovery conversation:
+
+1. It silently researches the existing `milo-os` services on GitHub to understand what already exists, which API groups are taken, and which naming patterns are used across the org.
+2. It asks what you're trying to build — starting with the problem, not the name.
+3. It proposes a service name, API group, and primary resource kind based on your description and the existing ecosystem. It will flag if something similar already exists.
+4. Once you confirm the design, it runs `hack/rename.sh` with the agreed values and creates the `.claude/.initialized` marker.
+
+You never touch the rename script manually. Claude runs it for you after you've agreed on the design.
+
+### After initialization
+
+Once initialized, Claude Code has full context via `CLAUDE.md` to help you develop the service iteratively:
+
+- Adding new resource types (`kubebuilder create api`)
+- Writing reconciler logic
+- Adding validation rules to webhooks
+- Extending the Remix UI with new routes and components
+- Generating and applying manifests
+
+This is not a one-time scaffold. It's a development partner for the full lifecycle of the service.
+
+### Manual trigger
+
+If you want to restart the discovery flow, run:
+
+```
+/init-service
 ```
 
-When `kubeconfigPath` is empty, the controller uses in-cluster config, which works for local development against a kind cluster that has your CRDs installed.
+---
 
-## Forking This Template
+## Prerequisites
 
-### Prerequisites
-
-| Tool | Minimum version | Install |
-|------|----------------|---------|
+| Tool | Version | Install |
+|------|---------|---------|
 | Go | 1.25+ | https://go.dev/dl |
-| Docker | any recent | https://docs.docker.com/get-docker |
+| Docker | recent | https://docs.docker.com/get-docker |
 | kind | v0.20+ | `go install sigs.k8s.io/kind@latest` |
-| Task runner | v3+ | https://taskfile.dev/installation |
+| Task | v3+ | https://taskfile.dev/installation |
 | pnpm | v9+ | `npm install -g pnpm` |
-| kubebuilder | v4 (reference only) | https://book.kubebuilder.io/quick-start |
+| kubebuilder | v4 (reference) | https://book.kubebuilder.io/quick-start |
+| gh | any | https://cli.github.com |
 
-### Automated rename
+kubebuilder is listed as a reference tool — you need it to add new API types after initialization, but not for the initial setup.
 
-After forking, run the rename script once to replace all template placeholders:
+---
+
+## Getting started manually
+
+If you're not using Claude Code, run the rename script yourself after forking:
 
 ```bash
 chmod +x hack/rename.sh
@@ -47,75 +71,142 @@ chmod +x hack/rename.sh
   --kind BillingAccount
 ```
 
-Use `--dry-run` to preview changes without writing anything:
+Use `--dry-run` to preview changes without writing anything.
 
-```bash
-./hack/rename.sh \
-  --service-name billing \
-  --api-group billing.miloapis.com \
-  --kind BillingAccount \
-  --dry-run
-```
-
-### What gets renamed
+The script replaces all template placeholders throughout the codebase:
 
 | Placeholder | Replaced with |
 |-------------|---------------|
-| `controller-template` | `--service-name` value (e.g. `billing`) |
-| `example.miloapis.com` | `--api-group` value (e.g. `billing.miloapis.com`) |
-| `Resource` (CamelCase kind) | `--kind` value (e.g. `BillingAccount`) |
-| `resource` (lowercase kind) | lowercase of `--kind` (e.g. `billingaccount`) |
-| `ControllerTemplateOperator` | `<Kind>Operator` (e.g. `BillingAccountOperator`) |
-| `CONTROLLER_TEMPLATE_API_` | `<SERVICE>_API_` env prefix (e.g. `BILLING_API_`) |
+| `controller-template` | `--service-name` (e.g. `billing`) |
+| `example.miloapis.com` | `--api-group` (e.g. `billing.miloapis.com`) |
+| `Resource` | `--kind` (e.g. `BillingAccount`) |
+| `resource` | lowercase kind (e.g. `billingaccount`) |
+| `ControllerTemplateOperator` | `<Kind>Operator` |
+| `CONTROLLER_TEMPLATE_API_` | `<SERVICE>_API_` env prefix |
 | `go.miloapis.com/controller-template` | `go.miloapis.com/<service-name>` |
 
-File and directory names containing these placeholders are also renamed (e.g. `cmd/controller-template/` and `resource_types.go`).
+File and directory names containing these strings are renamed as well.
 
-### Verify nothing was missed
+After renaming, verify no placeholders remain:
 
 ```bash
 grep -r "controller-template\|example\.miloapis\.com" \
   --include="*.go" --include="*.yaml" --include="*.ts" --include="*.tsx" .
 ```
 
-An empty result means all placeholders were replaced. Any hits in `zz_generated.*` files are expected — they will be overwritten by the next step.
+An empty result means all placeholders were replaced. Hits in `zz_generated.*` files are expected and will be overwritten in the next step.
 
-### After renaming
+Then regenerate and verify the build:
 
 ```bash
-task generate && task manifests   # regenerate deepcopy, CRD, RBAC, and webhook manifests
-task build && task test           # confirm it compiles and tests pass
-git add -A && git commit -m "rename: controller-template -> your-service-name"
+task generate && task manifests
+task build && task test
 ```
 
-### Troubleshooting
+---
 
-**Webhook cert not ready**
-The controller pod starts before cert-manager has issued the webhook certificate. Wait ~30 s and check:
+## Local development
+
+Bootstrap a local kind cluster and deploy the controller:
+
 ```bash
-kubectl -n controller-system get certificate
-kubectl -n controller-system describe validatingwebhookconfiguration
+task dev:setup
 ```
-If the certificate is stuck, confirm cert-manager is installed: `kubectl get pods -n cert-manager`.
 
-**Image pull errors**
-The dev overlay references a locally-built image that hasn't been pushed to the kind registry yet. Run:
+This creates a kind cluster (via the shared test-infra Taskfile), builds the controller image, loads it into kind, waits for cert-manager, and applies the dev Kustomize overlay. Expect it to take a couple of minutes on first run.
+
+After making code changes:
+
 ```bash
 task dev:redeploy
 ```
-This rebuilds the image, loads it into the kind cluster, and rolls the deployment.
 
-**kubeconfig not found**
-The controller looks for `kubeconfigPath` from `config/overlays/dev/config.yaml`. If the path doesn't exist the pod will crash-loop. For local development, either remove the field (falls back to in-cluster config) or mount a valid kubeconfig at the configured path.
+This rebuilds the image, loads it into the kind cluster, and cycles the controller pod. Faster than a full `dev:setup`.
 
-## Development
+Start the Remix UI dev server:
 
 ```bash
-task build       # Build the binary
-task test        # Run tests
-task lint        # Run linter
-task generate    # Run code generation (deepcopy, defaults)
-task manifests   # Generate CRD, RBAC, and webhook manifests
-task dev:setup   # Bootstrap kind cluster and deploy
-task dev:redeploy  # Rebuild image and roll pods
+task ui:dev   # http://localhost:3000
 ```
+
+The UI connects to the Kubernetes API server using environment variables. Copy `ui/.env.example` to `ui/.env` and configure:
+
+```bash
+# Option 1: explicit credentials
+<SERVICE>_API_SERVER_URL=https://your-api-server:6443
+<SERVICE>_API_CA_FILE=/path/to/ca.crt
+<SERVICE>_API_TOKEN_FILE=/path/to/token
+
+# Option 2: local kubeconfig (dev default)
+# Leave the URL unset — falls back to .test-infra/kubeconfig automatically
+```
+
+Run Chainsaw end-to-end tests:
+
+```bash
+task e2e
+```
+
+---
+
+## Project structure
+
+```
+controller-template/
+├── cmd/controller-template/    # Binary entrypoint
+├── api/v1alpha1/               # CRD type definitions (*_types.go)
+├── internal/
+│   ├── config/                 # Operator config type (kubeconfigPath, etc.)
+│   └── controller/             # Reconciler — finalizer, conditions, status
+├── internal/webhook/v1alpha1/  # Defaulting + validating webhook
+├── config/
+│   ├── base/                   # Core manifests (CRD, RBAC, webhook, manager)
+│   ├── components/             # Optional overlayable components
+│   └── overlays/               # dev and prod environment overlays
+├── ui/                         # Remix UI (React + datum-ui, Tailwind)
+│   ├── app/routes/             # File-based Remix routes
+│   └── app/lib/                # k8s server client, kubeconfig, types
+├── test/e2e/                   # Chainsaw test cases
+└── hack/
+    └── rename.sh               # One-shot placeholder replacement script
+```
+
+---
+
+## Task reference
+
+| Task | What it does |
+|------|-------------|
+| `task build` | Compile the controller binary |
+| `task test` | Run Go tests |
+| `task lint` | Run golangci-lint |
+| `task generate` | Generate deepcopy and defaulter code |
+| `task manifests` | Generate CRD, RBAC, and webhook manifests |
+| `task dev:setup` | Create kind cluster and deploy controller |
+| `task dev:redeploy` | Rebuild image and cycle the controller pod |
+| `task ui:dev` | Start Remix UI at http://localhost:3000 |
+| `task ui:build` | Production build of the UI |
+| `task ui:type-check` | TypeScript type check |
+| `task e2e` | Run Chainsaw e2e tests |
+
+---
+
+## Connecting to the Milo control plane
+
+The operator config supports a `kubeconfigPath` field that points the controller at Milo's API server instead of its local cluster:
+
+```yaml
+apiVersion: apiserver.config.miloapis.com/v1alpha1
+kind: ControllerTemplateOperator
+metricsServer:
+  bindAddress: "0"
+kubeconfigPath: /etc/milo/kubeconfig
+```
+
+When `kubeconfigPath` is empty, the controller falls back to in-cluster config — the default for local kind development.
+
+---
+
+## Deploying
+
+The repository includes a GitHub Actions publish workflow that triggers on merge to `main`. It builds and pushes the controller Docker image and Kustomize bundles to `ghcr.io/milo-os/<service-name>`. No additional configuration is needed beyond setting the standard `GITHUB_TOKEN` secret, which Actions provides automatically.
