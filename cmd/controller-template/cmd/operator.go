@@ -20,6 +20,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	"go.miloapis.com/instrumentation/buildinfo"
+	"go.miloapis.com/instrumentation/logging"
+
 	examplev1alpha1 "go.miloapis.com/controller-template/api/v1alpha1"
 	"go.miloapis.com/controller-template/internal/config"
 	"go.miloapis.com/controller-template/internal/controller"
@@ -52,7 +55,8 @@ func newOperatorCommand(info BuildInfo) *cobra.Command {
 		Use:   "operator",
 		Short: "Run the controller-template operator (controller-runtime manager)",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+			buildinfo.SetVersion(info.Version)
+			ctrl.SetLogger(logging.New(&opts))
 
 			setupLog := ctrl.Log.WithName("setup")
 			setupLog.Info("starting controller-template operator",

@@ -90,3 +90,11 @@ task ui:dev                   # Start dev server at http://localhost:3000
 task ui:build                 # Production build
 task ui:type-check            # TypeScript check
 ```
+
+## Metrics and logs
+
+Create every metric and logger through go.miloapis.com/instrumentation (Go)
+or @miloapis/instrumentation (TypeScript), naming labels with its labels
+constants. The instrumentation adoption test enforces this. When it fails,
+follow its message, which links to
+https://github.com/milo-os/instrumentation/blob/main/ADOPTING.md.
