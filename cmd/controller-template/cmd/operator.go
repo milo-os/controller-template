@@ -46,9 +46,7 @@ func newOperatorCommand(info BuildInfo) *cobra.Command {
 		serverConfigFile        string
 	)
 
-	opts := zap.Options{
-		Development: true,
-	}
+	opts := zap.Options{}
 
 	cmd := &cobra.Command{
 		Use:   "operator",
