@@ -72,6 +72,14 @@ kubeconfigPath: /etc/milo/kubeconfig
 
 When `kubeconfigPath` is empty, the controller falls back to in-cluster config, which is the default for development against a local kind cluster.
 
+## Reconcile errors
+
+Return an error from `Reconcile` only when a retry can fix it. controller-runtime retries every error with backoff and counts it, so an error that no retry can fix repeats for ever as a steady error rate.
+
+- **A failure no retry can fix**, such as input that can never succeed or an object a person must act on: set a condition that names the case and return `reconcile.TerminalError(err)`. It is logged and counted once, and not retried.
+- **A wait for something else**, such as another object becoming ready or dependents going away: set a condition, watch what you wait for, and return no error. When you cannot watch it, return `ctrl.Result{RequeueAfter: <poll interval>}`. Do not use `Result.Requeue`, which controller-runtime deprecates. [resend-provider's `finalizer_wait.go`](https://github.com/milo-os/resend-provider/blob/6c8e2b0745735dfffe1dd469278ae19ab03abc32/internal/controller/finalizer_wait.go) does this for a finalizer.
+- **Anything else**, such as a timeout, a conflict or a server error: return the error, and controller-runtime retries it.
+
 ## Verification Commands
 
 ```bash

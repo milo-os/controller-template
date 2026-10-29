@@ -32,6 +32,8 @@ type ResourceReconciler struct {
 // +kubebuilder:rbac:groups=example.miloapis.com,resources=resources/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=example.miloapis.com,resources=resources/finalizers,verbs=update
 
+// Reconcile returns an error only when a retry can fix it. For a failure no retry can fix, and for a wait, see
+// "Reconcile errors" in CLAUDE.md.
 func (r *ResourceReconciler) Reconcile(ctx context.Context, req reconcile.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
