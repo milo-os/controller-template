@@ -2,6 +2,8 @@ module go.miloapis.com/controller-template
 
 go 1.27.0
 
+toolchain go1.27.3
+
 require (
 	github.com/onsi/ginkgo/v2 v2.27.4
 	github.com/onsi/gomega v1.39.0
