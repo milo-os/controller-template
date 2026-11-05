@@ -29,8 +29,8 @@ func TestDecodingEmptyOperatorConfigAppliesDefaults(t *testing.T) {
 	if cfg.MetricsServer.SecureServing == nil || !*cfg.MetricsServer.SecureServing {
 		t.Errorf("MetricsServer.SecureServing = %v, want true", cfg.MetricsServer.SecureServing)
 	}
-	if cfg.MetricsServer.BindAddress != "0" {
-		t.Errorf("MetricsServer.BindAddress = %q, want %q", cfg.MetricsServer.BindAddress, "0")
+	if cfg.MetricsServer.BindAddress != ":8443" {
+		t.Errorf("MetricsServer.BindAddress = %q, want %q", cfg.MetricsServer.BindAddress, ":8443")
 	}
 	if filepath.Base(cfg.MetricsServer.TLS.CertDir) != "serving-certs" {
 		t.Errorf("MetricsServer.TLS.CertDir = %q, want a serving-certs directory", cfg.MetricsServer.TLS.CertDir)

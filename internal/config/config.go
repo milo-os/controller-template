@@ -115,7 +115,7 @@ func SetDefaults_MetricsServerConfig(obj *MetricsServerConfig) {
 	}
 
 	if obj.BindAddress == "" {
-		obj.BindAddress = "0"
+		obj.BindAddress = ":8443"
 	}
 
 	if len(obj.TLS.CertDir) == 0 {
